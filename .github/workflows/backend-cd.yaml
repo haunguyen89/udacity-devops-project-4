@@ -1,0 +1,72 @@
+# Workflow name
+name: Backend Continuous Deployment
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment: udacity
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.10'
+
+      - name: Install pipenv
+        working-directory: ./starter/backend
+        run: pip install pipenv 
+
+      - name: Install dependencies
+        working-directory: ./starter/backend
+        run: pipenv install  --deploy --dev
+      
+      - name: Linting
+        working-directory: ./starter/backend
+        run: pipenv run lint
+
+      - name: Testing
+        working-directory: ./starter/backend
+        run: pipenv run test
+
+      - name: Build application using Docker
+        working-directory: ./starter/backend
+        run: |
+          docker build -t udacityproject4backend:${GITHUB_SHA::7} .
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: us-east-1
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+        with:
+          mask-password: 'false'
+          registry: 538638133707.dkr.ecr.us-east-1.amazonaws.com
+
+      - name: Push Docker image to ECR
+        run: |
+          docker tag udacityproject4backend:${GITHUB_SHA::7} 538638133707.dkr.ecr.us-east-1.amazonaws.com/udacityproject4backend:${GITHUB_SHA::7}
+          docker push 538638133707.dkr.ecr.us-east-1.amazonaws.com/udacityproject4backend:${GITHUB_SHA::7}
+
+      - name: Configure kubectl
+        run: |
+          aws eks --region us-east-1 update-kubeconfig --name udacityproject4frontend
+
+
+      - name: Deploy Docker Image to Amazon EKS
+        working-directory: ./starter/backend/k8s
+        run: |
+          kustomize edit set image backend=538638133707.dkr.ecr.us-east-1.amazonaws.com/udacityproject4backend:${GITHUB_SHA::7}
+          kustomize build | kubectl apply -f -

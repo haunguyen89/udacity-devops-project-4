@@ -1,0 +1,84 @@
+# Workflow name
+name: Frontend Continuous Deployment
+
+# Triggers for the workflow
+on:
+  # Automatic trigger on push events to the main branch
+  push:
+    branches:
+      - main
+  # Manual trigger using the workflow_dispatch event
+  workflow_dispatch:
+
+# Jobs defined in the workflow
+jobs:
+  # The operating system for the runner
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment: udacity
+
+    # Steps in the job
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup NodeJS
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Restore cache and install dependencies
+        uses: actions/cache@v2
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        working-directory: ./starter/frontend
+        run: npm ci
+
+      - name: Run linting
+        working-directory: ./starter/frontend
+        run: npm run lint
+
+      - name: Run tests
+        working-directory: ./starter/frontend
+        run: npm run test
+
+      - name: Build application using Docker
+        working-directory: ./starter/frontend
+        run: |
+          docker build \
+            --build-arg REACT_APP_MOVIE_API_URL=$REACT_APP_MOVIE_API_URL \
+            -t udacityproject4frontend:${GITHUB_SHA::7} .
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: us-east-1
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+        with:
+          mask-password: 'false'
+          registry: 538638133707.dkr.ecr.us-east-1.amazonaws.com
+
+
+      - name: Push Docker image to ECR
+        run: |
+          docker tag udacityproject4frontend:${GITHUB_SHA::7} 538638133707.dkr.ecr.us-east-1.amazonaws.com/udacityproject4frontend:${GITHUB_SHA::7}
+          docker push 538638133707.dkr.ecr.us-east-1.amazonaws.com/udacityproject4frontend:${GITHUB_SHA::7}
+      
+      - name: Configure kubectl
+        run: |
+          aws eks --region us-east-1 update-kubeconfig --name udacityproject4frontend
+
+      - name: Deploy Docker Image to Amazon EKS
+        working-directory: ./starter/frontend/k8s
+        run: |
+          kustomize edit set image frontend=538638133707.dkr.ecr.us-east-1.amazonaws.com/udacityproject4frontend:${GITHUB_SHA::7}
+          kustomize build | kubectl apply -f -
