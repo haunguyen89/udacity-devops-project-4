@@ -39,7 +39,7 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
-
+    needs: lint
     steps:
       - name: Checkout code Frontend
         uses: actions/checkout@v3
