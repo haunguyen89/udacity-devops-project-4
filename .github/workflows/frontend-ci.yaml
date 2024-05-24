@@ -13,15 +13,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout code Frontend
         uses: actions/checkout@v3
 
-      - name: Setup NodeJS
+      - name: Setup NodeJS Frontend
         uses: actions/setup-node@v3
         with:
           node-version: 18
 
-      - name: Restore cache and install dependencies
+      - name: Restore cache and install dependencies Frontend
         uses: actions/cache@v2
         with:
           path: ~/.npm
@@ -29,11 +29,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
-      - name: Install dependencies
+      - name: Install dependencies Frontend
         working-directory: ./starter/frontend
         run: npm ci
 
-      - name: Run linting
+      - name: Run linting Frontend
         working-directory: ./starter/frontend
         run: npm run lint
 
@@ -41,15 +41,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout code Frontend
         uses: actions/checkout@v3
 
-      - name: Setup NodeJS
+      - name: Setup NodeJS Frontend
         uses: actions/setup-node@v3
         with:
           node-version: 18
 
-      - name: Restore cache and install dependencies
+      - name: Restore cache and install dependencies Frontend
         uses: actions/cache@v2
         with:
           path: ~/.npm
@@ -57,11 +57,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
-      - name: Install dependencies
+      - name: Install dependencies Frontend
         working-directory: ./starter/frontend
         run: npm ci
 
-      - name: Run tests
+      - name: Run tests Frontend
         working-directory: ./starter/frontend
         run: npm run test
 
@@ -70,15 +70,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout code Frontend
         uses: actions/checkout@v3
 
-      - name: Setup NodeJS
+      - name: Setup NodeJS Frontend
         uses: actions/setup-node@v3
         with:
           node-version: 18
 
-      - name: Restore cache and install dependencies
+      - name: Restore cache and install dependencies Frontend
         uses: actions/cache@v2
         with:
           path: ~/.npm
@@ -86,7 +86,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
-      - name: Build and Run Docker Image
+      - name: Build and Run Docker Image Frontend
         working-directory: ./starter/frontend
         run: |
           docker build --build-arg=REACT_APP_MOVIE_API_URL=http://localhost:5000 --tag=mp-frontend:latest .
