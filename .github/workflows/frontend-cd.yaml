@@ -22,7 +22,7 @@ jobs:
       - name: Checkout code Front end
         uses: actions/checkout@v3
 
-      - name: Setup NodeJS 
+      - name: Setup NodeJS
         uses: actions/setup-node@v3
         with:
           node-version: 18
